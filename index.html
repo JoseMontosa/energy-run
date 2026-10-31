@@ -2,12 +2,17 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Energy Run · La fuga eléctrica</title>
 <link rel="stylesheet" href="style.css">
-
 </head>
 <body>
+<div id="rotateHint" role="status"><strong>⚡ ENERGY RUN</strong><span>↻ Gira el móvil</span><span>Juega con el móvil en horizontal para ver bien las preguntas y las plataformas.</span><small>Si no gira, activa la rotación automática del dispositivo.</small></div>
+<div id="touchControls" aria-label="Controles táctiles">
+ <div class="touch-group"><button type="button" class="touch-btn" data-key="ArrowLeft" aria-label="Mover a la izquierda">◀</button><button type="button" class="touch-btn" data-key="ArrowRight" aria-label="Mover a la derecha">▶</button><button type="button" class="touch-btn" data-key="ArrowDown" aria-label="Agacharse o bajar">▼</button></div>
+ <button type="button" class="touch-btn" id="touchPause" aria-label="Pausar">Ⅱ</button>
+ <div class="touch-group"><button type="button" class="touch-btn action" data-key="Action">ACCIÓN</button><button type="button" class="touch-btn jump" data-key="Space">SALTAR<br><small>×2 doble</small></button></div>
+</div>
 <div id="wrap">
   <canvas id="cv" width="960" height="540"></canvas>
   <div class="ui" id="ui">
@@ -31,6 +36,7 @@
       <div class="dim">CEIP Miguel Servet · Balerma</div>
       <div style="height:.6em"></div>
       <div class="ctrl"><b>← →</b><span>Mover</span><b>ESPACIO ×2</b><span>Saltar / doble salto</span><b>↓</b><span>Agacharse / bajar</span><b>E</b><span>Acción / disparar</span><b>ENTER</b><span>Confirmar</span><b>P</b><span>Pausa</span></div>
+      <p class="touch-help">◀ ▶ Mover · ▼ Agacharse / bajar · SALTAR: toca dos veces para doble salto · ACCIÓN: activar / disparar · Ⅱ Pausa</p>
       <div class="stats" id="menuStats"></div>
       <div class="row"><button class="btn" id="btnStart">COMENZAR AVENTURA</button></div>
       <div class="dim">Elegir mundo: <span class="worlds" id="worldBtns" style="display:inline-flex"></span></div>
