@@ -45,3 +45,33 @@ button{font-family:inherit;cursor:pointer}
 #snd{position:absolute;right:.6em;bottom:.5em;font-size:1em;padding:.3em .6em;border-radius:.6em;background:#16205acc;color:#fff;border:2px solid #6a79c9;font-weight:700}
 .rep{max-height:42%;overflow:auto;text-align:left;font-size:.95em;background:#0b1236;border:1px solid #27e1ff66;border-radius:.6em;padding:.5em .9em;width:80%}
 .rep div{margin:.15em 0}
+
+/* Mandos fuera del escenario: los dedos no ocultan plataformas ni respuestas. */
+#touchControls,#rotateHint,.touch-help{display:none}
+.touch-device .touch-help{display:block}
+.touch-device .ctrl{display:none}
+.touch-device.menu-view #wrap{width:min(100vw,calc(100dvh*16/9));height:min(calc(100vw*9/16),100dvh);margin-bottom:0}
+.touch-device .panel .btn{min-height:44px}
+.touch-device .worlds button{min-width:44px;min-height:44px}
+.touch-device #wrap{width:min(100vw,calc((100dvh - 106px)*16/9));height:min(calc(100vw*9/16),calc(100dvh - 106px));margin-bottom:94px}
+#touchControls{position:fixed;bottom:0;left:0;right:0;min-height:88px;padding:8px max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));background:#080e29;justify-content:space-between;align-items:center;gap:12px;z-index:20;touch-action:none}
+.touch-device #touchControls.active{display:flex}
+.touch-group{display:flex;gap:8px}
+.touch-btn{min-width:54px;min-height:56px;border:2px solid #27e1ff;border-radius:14px;background:#172754;color:white;font:bold 16px "Trebuchet MS",sans-serif;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.touch-btn.held{background:#237198;transform:translateY(2px)}
+.touch-btn.jump{min-width:94px;background:#156744}.touch-btn.action{min-width:80px;background:#63488a}
+.touch-device .panel{overflow:auto;justify-content:safe center;padding:.5em;font-size:max(10px,1em)}
+.touch-device #sc-menu h1{font-size:2.3em}.touch-device #sc-menu h2{font-size:1.4em}
+.touch-device .touch-help{font-size:1em;color:#cfe0ff;margin:.3em 0;max-width:90%}
+.touch-device #snd{font-size:max(10px,1em)}
+.touch-device #ansbox,.touch-device #mcbox{position:fixed;z-index:40;inset:8px 5%;bottom:auto;max-height:calc(var(--visible-height,100dvh) - 16px);overflow-y:auto;font-size:16px;padding:10px;touch-action:pan-y}
+.touch-device #ansin{font-size:18px;width:90%}.touch-device #anspat{font-size:22px;letter-spacing:.12em}
+.touch-device #ansprompt,.touch-device #mcq{font-size:17px!important}.touch-device #anshint{font-size:15px}
+.touch-device #mcbox .opt{min-height:48px;font-size:16px}
+.touch-device #fb{font-size:max(12px,1.25em)}
+.touch-device #qbar{font-size:max(13px,1.5em)}
+@media (orientation:portrait){
+ .touch-device #rotateHint{position:fixed;inset:0;z-index:60;background:#070b1f;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:26px;font-size:20px;gap:16px}
+ .touch-device #rotateHint strong{font-size:30px;color:#ffd93d}
+ .touch-device #touchControls{visibility:hidden}
+}
