@@ -47,7 +47,50 @@ window.addEventListener("keydown",e=>{
 window.addEventListener("keyup",e=>{const k=e.code==="Space"?"Space":e.key.toLowerCase()==="e"?"Action":e.key;keys[k]=false});
 window.addEventListener("blur",()=>{clearInput();if(state==="playing"||state==="boss")onPause(true)});
 function consume(k){const v=pressed[k];pressed[k]=false;return !!v}
-function clearInput(){for(const k in keys)keys[k]=false;for(const k in pressed)pressed[k]=false}
+function clearInput(){for(const k in keys)keys[k]=false;for(const k in pressed)pressed[k]=false;releaseTouch()}
+
+// Pointer Events permite mover y saltar a la vez con dos dedos.
+const touchPointers=new Map();
+function releaseTouch(){
+  for(const [id,entry] of touchPointers){keys[entry.key]=false;entry.button.classList.remove("held")}
+  touchPointers.clear();
+}
+function syncTouchUI(){
+  const active=state==="playing"||state==="boss";
+  document.body.classList.toggle("menu-view",state==="menu");
+  $("touchControls").classList.toggle("active",active);
+  if(!active)releaseTouch();
+}
+function setupTouch(){
+  const touch=matchMedia("(pointer: coarse)").matches||navigator.maxTouchPoints>0;
+  document.body.classList.toggle("touch-device",touch);
+  document.querySelectorAll("[data-key]").forEach(button=>{
+    button.addEventListener("pointerdown",e=>{
+      if(state!=="playing"&&state!=="boss")return;
+      e.preventDefault();button.setPointerCapture(e.pointerId);
+      const key=button.dataset.key;
+      if(!keys[key])pressed[key]=true;
+      keys[key]=true;button.classList.add("held");touchPointers.set(e.pointerId,{key,button});
+    });
+    const up=e=>{
+      const entry=touchPointers.get(e.pointerId);if(!entry)return;
+      touchPointers.delete(e.pointerId);
+      if(![...touchPointers.values()].some(other=>other.key===entry.key)){
+        keys[entry.key]=false;button.classList.remove("held");
+      }
+    };
+    button.addEventListener("pointerup",up);button.addEventListener("pointercancel",up);button.addEventListener("lostpointercapture",up);
+    button.addEventListener("contextmenu",e=>e.preventDefault());
+  });
+  $("touchPause").onclick=()=>{clearInput();onPause();syncTouchUI()};
+  document.addEventListener("visibilitychange",()=>{if(document.hidden){clearInput();onPause(true)}});
+  const viewport=()=>{
+    document.documentElement.style.setProperty("--visible-height",(window.visualViewport?window.visualViewport.height:window.innerHeight)+"px");
+    if(touch&&matchMedia("(orientation: portrait)").matches){clearInput();onPause(true)}
+  };
+  window.addEventListener("resize",viewport);if(window.visualViewport)window.visualViewport.addEventListener("resize",viewport);
+  viewport();
+}
 
 // ================= LEARNING SYSTEM =================
 function ST(cid){return save.masteryStats[cid]||(save.masteryStats[cid]={c:0,w:0,lvl:1,tmp:1,hist:""})}
@@ -63,8 +106,8 @@ function weightOf(cid){return ST(cid).tmp}
 function choose(list,avoid){
   let l=list.slice();
   const unseen=l.filter(c=>!G.seen.has(c));
-  if(unseen.length)l=unseen;
-  if(l.length>1&&avoid)l=l.filter(c=>c!==avoid);
+  if(unseen.length)l=unseen;                           // cobertura: primero lo que aún no ha salido
+  if(l.length>1&&avoid)l=l.filter(c=>c!==avoid);       // no repetir seguido
   const tot=l.reduce((a,c)=>a+weightOf(c),0);let r=Math.random()*tot;
   for(const c of l){r-=weightOf(c);if(r<=0)return c}
   return l[l.length-1];
@@ -156,6 +199,7 @@ function buildWrite(room,cid){
     else if(lv===4){prompt=c.def}
     else{prompt=c.apply}
   }
+  // nivel 4-5 con definición: aceptar la forma completa y la corta
   return {cid,kind:"type",prompt,ans:ans.concat(c.forms),label:c.label,hint:c.hint,pat:frac>0?maskWord(c.label,frac):"",fact:room.icon==="📺"?"La televisión transforma la electricidad en energía lumínica y sonora.":c.fact,level:lv};
 }
 function buildItem(room){
@@ -186,13 +230,16 @@ function answer(item,ok){
     if(G.streak===2)toast("🔥 RACHA x2","#ffb03d");
     if(G.streak===5)toast("🔥🔥 RACHA x3","#ff7a3d");
     if(G.streak===10){G.overload=10;toast("⚡ MODO SOBRECARGA","#27e1ff");SFX.win()}
-  }else if(item.errs===1){
+  }else if(item.errs===1){                                // el fallo se cuenta una sola vez por reto
     record(item.cid,false,true);G.wrong++;G.streak=0;SFX.ko();
     G.energy=Math.max(0,G.energy-10);float("-10 ⚡",P?P.x:480,P?P.b-60:300,"#ff4d6d");
     if(G.energy<=0)loseLife("Sin energía");
   }
 }
-function showFb(html,cls,ms){const f=$("fb");f.className=cls||"";f.innerHTML=html;f.classList.remove("hide");clearTimeout(showFb.t);if(ms)showFb.t=setTimeout(()=>f.classList.add("hide"),ms);}
+function showFb(html,cls,ms){
+  const f=$("fb");f.className=cls||"";f.innerHTML=html;f.classList.remove("hide");
+  clearTimeout(showFb.t);if(ms)showFb.t=setTimeout(()=>f.classList.add("hide"),ms);
+}
 function hideFb(){clearTimeout(showFb.t);$("fb").classList.add("hide")}
 const toastQ=[];
 function toast(txt,col){const t=$("toast");t.textContent=txt;t.style.color=col||"#fff";t.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("on"),1400)}
@@ -201,8 +248,42 @@ function float(txt,x,y,col){if(typeof x!=="number")return;floats.push({txt,x,y,c
 
 // ================= ENTRADA DE TEXTO =================
 let askCb=null,askItem=null,askRevealed=false;
-function openAsk(item,cb){askItem=item;askCb=cb;askRevealed=false;item.t0=performance.now();typing=true;clearInput();$("ansprompt").innerHTML=esc(item.prompt);$("anspat").textContent=item.pat||"";$("anshint").textContent="";const inp=$("ansin");inp.value="";inp.style.borderColor="";$("ansbox").classList.remove("hide");$("qbar").classList.add("hide");setTimeout(()=>inp.focus(),30);}
+function openAsk(item,cb){
+  askItem=item;askCb=cb;askRevealed=false;item.t0=performance.now();
+  typing=true;clearInput();
+  $("ansprompt").innerHTML=esc(item.prompt);
+  $("anspat").textContent=item.pat||"";
+  $("anshint").textContent="";
+  const inp=$("ansin");inp.value="";inp.style.borderColor="";
+  $("ansbox").classList.remove("hide");$("qbar").classList.add("hide");
+  setTimeout(()=>inp.focus(),30);
+}
 function closeAsk(){typing=false;$("ansbox").classList.add("hide");$("ansin").blur();clearInput();askItem=null;window.focus()}
-function submitAsk(){if(!askItem||state!=="question")return;const it=askItem,inp=$("ansin"),val=inp.value;if(!norm(val))return;const ok=accepts(it.ans,val);if(askRevealed){if(ok){finishAsk(it,false)}else{inp.value="";$("anshint").textContent="Escribe: "+it.label.toUpperCase()}return;}if(ok){it.hinted=it.hints>0;finishAsk(it,true)}else{it.errs++;answer(it,false);if(state!=="question")return;const n=it.errs;inp.style.borderColor="#ff4d6d";setTimeout(()=>inp.style.borderColor="",500);if(n===1){it.hints=1;$("anshint").textContent="💭 Pista: "+it.hint}else if(n===2){it.hints=2;$("anshint").textContent="💭 "+firstLetter(it.label)}else if(n===3){it.hints=3;$("anspat").textContent=maskWord(it.label,.5);$("anshint").textContent="💭 Mira la palabra: faltan letras"}else{askRevealed=true;it.hints=4;$("anspat").textContent=it.label.toUpperCase();$("anshint").textContent="Esta es la respuesta. ESCRÍBELA para continuar.";}inp.value="";inp.focus();}}
-function finishAsk(it,ok){const cb=askCb;closeAsk();if(ok){answer(it,true);}cb&&cb(ok,it);}
+function submitAsk(){
+  if(!askItem||state!=="question")return;
+  const it=askItem,inp=$("ansin"),val=inp.value;
+  if(!norm(val))return;
+  const ok=accepts(it.ans,val);
+  if(askRevealed){                                           // copiar la respuesta revelada
+    if(ok){finishAsk(it,false)}else{inp.value="";$("anshint").textContent="Escribe: "+it.label.toUpperCase()}
+    return;
+  }
+  if(ok){it.hinted=it.hints>0;finishAsk(it,true)}
+  else{
+    it.errs++;answer(it,false);
+    if(state!=="question")return;
+    const n=it.errs;inp.style.borderColor="#ff4d6d";setTimeout(()=>inp.style.borderColor="",500);
+    if(n===1){it.hints=1;$("anshint").textContent="💭 Pista: "+it.hint}
+    else if(n===2){it.hints=2;$("anshint").textContent="💭 "+firstLetter(it.label)}
+    else if(n===3){it.hints=3;$("anspat").textContent=maskWord(it.label,.5);$("anshint").textContent="💭 Mira la palabra: faltan letras"}
+    else{askRevealed=true;it.hints=4;$("anspat").textContent=it.label.toUpperCase();$("anshint").textContent="Esta es la respuesta. ESCRÍBELA para continuar.";}
+    inp.value="";inp.focus();
+  }
+}
+function finishAsk(it,ok){
+  const cb=askCb;closeAsk();
+  if(ok){answer(it,true);}
+  cb&&cb(ok,it);
+}
 function checkMC(item,opt){return !!opt.ok}
+
