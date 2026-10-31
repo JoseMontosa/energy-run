@@ -49,8 +49,8 @@ window.addEventListener("keydown",e=>{if(mcActive&&!mcActive.done&&/^[1-4]$/.tes
 let lastT=performance.now();
 function frame(now){
   const dt=Math.min(.05,Math.max(0,(now-lastT)/1000));lastT=now;
-  try{update(dt);draw()}catch(err){console.error(err)}
+  try{update(dt);draw();syncTouchUI()}catch(err){console.error(err)}
   requestAnimationFrame(frame);
 }
-setSoundBtn();showMenu();
+setupTouch();setSoundBtn();showMenu();
 requestAnimationFrame(frame);
